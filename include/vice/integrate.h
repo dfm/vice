@@ -8,11 +8,12 @@
 #include <boost/math/quadrature/gauss_kronrod.hpp>
 
 namespace vice {
+  namespace integrate {
 
-  namespace reimann {
+  struct riemann {
 
     template <typename Scalar, typename Functor>
-    inline Scalar integrate_fixed (Functor& func, Scalar lower, Scalar upper, unsigned points) {
+    inline Scalar operator() (Functor& func, Scalar lower, Scalar upper, unsigned points) {
       points = std::max<unsigned>(1, points);
 
       Scalar dx = (upper - lower) / points;
@@ -26,9 +27,9 @@ namespace vice {
       return dx * f;
     }
 
-  }
+  };
 
-  namespace trapezoid {
+  struct trapezoid_adapt {
 
     template <typename Scalar, typename Functor>
     inline Scalar inner (Functor& func, Scalar x1, Scalar x2, Scalar y1, Scalar y2, Scalar tol, unsigned max_depth, unsigned depth) {
@@ -47,12 +48,16 @@ namespace vice {
     }
 
     template <typename Scalar, typename Functor>
-    inline Scalar integrate_adapt (Functor& func, Scalar lower, Scalar upper, Scalar tol, unsigned max_depth=15) {
+    inline Scalar operator() (Functor& func, Scalar lower, Scalar upper, Scalar tol, unsigned max_depth=15) {
       return inner<Scalar, Functor> (func, lower, upper, func(lower), func(upper), tol, max_depth, 0);
     }
 
+  };
+
+  struct trapezoid_fixed {
+
     template <typename Scalar, typename Functor>
-    inline Scalar integrate_fixed (Functor& func, Scalar lower, Scalar upper, unsigned points) {
+    inline Scalar operator() (Functor& func, Scalar lower, Scalar upper, unsigned points) {
       points = std::max<unsigned>(2, points);
 
       Scalar dx = (upper - lower) / (points - 1);
@@ -67,9 +72,9 @@ namespace vice {
       return dx * f;
     }
 
-  }
+  };
 
-  namespace simpson {
+  struct simpson_adapt {
 
     template <typename Scalar, typename Functor>
     inline Scalar inner (Functor& func, Scalar x0, Scalar dx, Scalar ym, Scalar y0, Scalar yp, Scalar tol, unsigned max_depth, unsigned depth) {
@@ -92,7 +97,7 @@ namespace vice {
     }
 
     template <typename Scalar, typename Functor>
-    inline Scalar integrate_adapt (Functor& func, Scalar lower, Scalar upper, Scalar tol, unsigned max_depth=15) {
+    inline Scalar operator() (Functor& func, Scalar lower, Scalar upper, Scalar tol, unsigned max_depth=15) {
       Scalar x0 = 0.5 * (upper + lower);
       Scalar dx = 0.5*(upper - lower);
       Scalar ym = func(lower);
@@ -108,9 +113,12 @@ namespace vice {
 
       return inner<Scalar, Functor> (func, x0, dx, ym, y0, yp, tol, max_depth, 0);
     }
+  };
+
+  struct simpson_fixed {
 
     template <typename Scalar, typename Functor>
-    inline Scalar integrate_fixed (Functor& func, Scalar lower, Scalar upper, unsigned points) {
+    inline Scalar operator() (Functor& func, Scalar lower, Scalar upper, unsigned points) {
       points = std::max<unsigned>(3, points + (points + 1) % 2);  // points must be odd
 
       Scalar dx = (upper - lower) / (points - 1);
@@ -125,17 +133,20 @@ namespace vice {
       return dx * f / 3;
     }
 
-  }
+  };
 
-  namespace quadrature {
+  template <unsigned Points>
+  struct quadrature {
 
-    template <unsigned Points, typename Scalar, typename Functor>
-    inline Scalar integrate_adapt (Functor& func, Scalar lower, Scalar upper, Scalar tol, unsigned max_depth=15) {
-      return boost::math::quadrature::gauss_kronrod<Scalar, Points>::integrate(func, lower, upper, max_depth, tol);
+    template <typename Scalar, typename Functor>
+    inline Scalar operator() (Functor& func, Scalar lower, Scalar upper, Scalar tol, unsigned max_depth=15) {
+      auto f = [&func](Scalar t) { return func(t); };
+      return boost::math::quadrature::gauss_kronrod<Scalar, Points>::integrate(f, lower, upper, max_depth, tol);
     }
 
-  }
+  };
 
-}  // namespace vice
+  }  // namespace integrate
+}    // namespace vice
 
 #endif  // _VICE_INTEGRATE_H_

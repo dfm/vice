@@ -33,3 +33,4 @@
 .DS_Store
 bin
 *.csv
+__pycache__

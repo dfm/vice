@@ -2,7 +2,7 @@
 #define _VICE_BENCHMARK_H_
 
 #include <tuple>
-#include <vector>
+#include <Eigen/Core>
 
 // Timer for the benchmark.
 #if defined(_MSC_VER)
@@ -38,21 +38,25 @@ namespace vice {
     // Returns a tuple with the computed integral, the number of calls to the
     // functor, and the total run time in seconds.
     //
-    template <typename Scalar, typename Functor, typename Integrator, typename ParamType>
-    std::tuple<std::vector<Scalar>, long int, double> benchmark_integrate (Functor& func, Integrator& integrator, const std::vector<Scalar>& time, const Scalar texp, ParamType param) {
-      func.reset();
-      std::vector<Scalar> fluence(time.size());
+    template <typename Type, typename Functor, typename Integrator, typename ParamType>
+    std::tuple<Eigen::Matrix<typename Type::Scalar, Eigen::Dynamic, 1>,
+               Eigen::Matrix<long int, Eigen::Dynamic, 1>, double> integrate (Functor& func, Integrator& integrator, const Eigen::DenseBase<Type>& time, const typename Type::Scalar texp, ParamType param) {
+      typedef typename Type::Scalar Scalar;
+      Eigen::Matrix<Scalar, Eigen::Dynamic, 1>   integral(time.rows());
+      Eigen::Matrix<long int, Eigen::Dynamic, 1> n_eval(time.rows());
 
       double total_time = get_timestamp();
-      for (size_t i = 0; i < time.size(); ++i) {
-        Scalar t = time[i];
+      for (int i = 0; i < time.rows(); ++i) {
+        Scalar t = time(i);
         Scalar lower = t - 0.5*texp;
         Scalar upper = t + 0.5*texp;
-        fluence[i] = integrator(func, lower, upper, param) / texp;
+        func.reset();
+        integral(i) = integrator(func, lower, upper, param) / texp;
+        n_eval(i) = func.get_n_eval();
       }
       total_time = get_timestamp() - total_time;
 
-      return std::make_tuple(fluence, func.get_n_eval(), total_time);
+      return std::make_tuple(integral, n_eval, total_time);
     }
 
   }

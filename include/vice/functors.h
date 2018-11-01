@@ -41,7 +41,6 @@ namespace vice {
         }
 
         T integrate (T lower, T upper) {
-          T dt = duration_ + ingress_;
           T integral = T(0);
 
           if (lower < -duration_-ingress_) {
@@ -94,7 +93,7 @@ namespace vice {
         T agol_norm;
 
       public:
-        StarryFunctor (const utils::Vector<double>& u, T r, T b, T tau) : L(u.rows()), r_(r), tau_(tau) {
+        StarryFunctor (const utils::Vector<T>& u, T r, T b, T tau) : r_(r), tau_(tau), L(u.rows())  {
           b2_ = b*b;
           v2_ = 4 * (1 - b2_) / (tau*tau);
 
@@ -102,7 +101,7 @@ namespace vice {
           int lmax = u.rows();
           utils::Vector<T> u_(lmax + 1);
           u_(0) = -1.0;
-          u_.segment(1, lmax) = u.template cast<T>();
+          u_.segment(1, lmax) = u;
           agol_c = limbdark::computeC(u_);
           agol_norm = limbdark::normC(agol_c);
         }
@@ -121,7 +120,8 @@ namespace vice {
 
         T integrate (T lower, T upper) {
           auto func = [this](T t){ return this->operator()(t); };
-          return vice::quadrature::integrate_adapt<15>(func, lower, upper, 1e-12, 10);
+          vice::integrate::quadrature<15> integrator;
+          return integrator(func, lower, upper, 1e-12, 10);
         }
     };
 
