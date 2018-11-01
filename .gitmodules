@@ -1,0 +1,3 @@
+[submodule "vice/starry"]
+	path = vendor/starry
+	url = https://github.com/rodluger/starry.git

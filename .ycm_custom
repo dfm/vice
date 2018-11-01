@@ -1,2 +1,4 @@
 -isystem
-{PWD}/vice
+{PWD}/include
+-isystem
+{PWD}/vendor/starry

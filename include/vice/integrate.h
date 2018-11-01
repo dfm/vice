@@ -5,9 +5,7 @@
 #include <tuple>
 #include <algorithm>
 
-#ifdef USE_BOOST
 #include <boost/math/quadrature/gauss_kronrod.hpp>
-#endif
 
 namespace vice {
 
@@ -129,17 +127,15 @@ namespace vice {
 
   }
 
-#ifdef USE_BOOST
   namespace quadrature {
 
-    template <typename Scalar, typename Functor, unsigned Points>
+    template <unsigned Points, typename Scalar, typename Functor>
     inline Scalar integrate_adapt (Functor& func, Scalar lower, Scalar upper, Scalar tol, unsigned max_depth=15) {
       return boost::math::quadrature::gauss_kronrod<Scalar, Points>::integrate(func, lower, upper, max_depth, tol);
     }
 
   }
-#endif
 
-}
+}  // namespace vice
 
 #endif  // _VICE_INTEGRATE_H_
