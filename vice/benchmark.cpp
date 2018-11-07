@@ -35,7 +35,7 @@ trapezoid_exact (Scalar depth, Scalar duration, Scalar ingress,
   for (int i = 0; i < time.rows(); ++i) {
     Scalar lower = time(i) - 0.5*texp;
     Scalar upper = time(i) + 0.5*texp;
-    fluence(i) = func.integrate(lower, upper);
+    fluence(i) = func.integrate(lower, upper) / texp;
   }
   return fluence;
 }
@@ -71,14 +71,15 @@ benchmark_transit (Eigen::Ref<const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>> u,
 template <typename Scalar>
 Eigen::Matrix<Scalar, Eigen::Dynamic, 1>
 transit_exact (Eigen::Ref<const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>> u, Scalar r, Scalar b, Scalar tau,
-               Eigen::Ref<const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>> time, Scalar texp)
+               Eigen::Ref<const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>> time, Scalar texp,
+               Scalar tol, unsigned max_depth)
 {
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> fluence(time.rows());
   vice::functors::StarryFunctor<Scalar> func(u, r, b, tau);
   for (int i = 0; i < time.rows(); ++i) {
     Scalar lower = time(i) - 0.5*texp;
     Scalar upper = time(i) + 0.5*texp;
-    fluence(i) = func.integrate(lower, upper);
+    fluence(i) = func.integrate(lower, upper, tol, max_depth) / texp;
   }
   return fluence;
 }
@@ -105,7 +106,9 @@ PYBIND11_MODULE(benchmark, m) {
   m.def("transit_flux",              &transit_flux<double>);
 
   m.def("trapezoid_exact",           &trapezoid_exact<double>);
-  m.def("transit_exact",             &transit_exact<double>);
+  m.def("transit_exact",             &transit_exact<double>,
+                                     py::arg("u"), py::arg("r"), py::arg("b"), py::arg("tau"), py::arg("t"), py::arg("texp"),
+                                     py::arg("tol")=1e-12, py::arg("max_depth")=15);
 
   m.def("trapezoid_riemann",         &benchmark_trapezoid<double, unsigned, vice::integrate::riemann>);
   m.def("trapezoid_trapezoid_fixed", &benchmark_trapezoid<double, unsigned, vice::integrate::trapezoid_fixed>);
